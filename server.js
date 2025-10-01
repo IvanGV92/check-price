@@ -9,7 +9,8 @@ const port = 8080;
 
 
 const MAX_ATTEMPTS_PER_URL = 3;
-const LOG_FILE_PATH = '..\\check-price-logs.txt';
+const LOG_FILE_PATH = path.join(__dirname, 'check-price-logs.txt');
+
 
 function logToFile(message) {
   const timestamp = new Date().toISOString();
@@ -17,7 +18,8 @@ function logToFile(message) {
   fs.appendFile(LOG_FILE_PATH, logEntry, (err) => {
     if (err) console.error('Failed to write log:', err);
   });
-}
+};
+
 
 async function fetchPriceFromUrls() {
   for (const url of PRICE_URLS) {
