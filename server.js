@@ -9,7 +9,7 @@ const port = 8080;
 
 
 const MAX_ATTEMPTS_PER_URL = 3;
-const LOG_FILE_PATH = 'C:\\check-price-logs.txt';
+const LOG_FILE_PATH = '..\\check-price-logs.txt';
 
 function logToFile(message) {
   const timestamp = new Date().toISOString();
