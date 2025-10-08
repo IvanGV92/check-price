@@ -2,15 +2,11 @@ const express = require('express');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const { PRICE_URLS } = require('./environment');
+const { PRICE_URLS, VERIFY_SERVICE_URL } = require('./environment');
 const app = express();
 const port = 8080;
 
-
-
-const MAX_ATTEMPTS_PER_URL = 3;
 const LOG_FILE_PATH = path.join(__dirname, 'check-price-logs.txt');
-
 
 function logToFile(message) {
   const timestamp = new Date().toISOString();
@@ -18,35 +14,33 @@ function logToFile(message) {
   fs.appendFile(LOG_FILE_PATH, logEntry, (err) => {
     if (err) console.error('Failed to write log:', err);
   });
-};
+}
 
+async function fetchPriceViaVerifyService() {
+  for (const getPriceUrl of PRICE_URLS) {
+    const verifyUrl = `${VERIFY_SERVICE_URL}/verify-price-error?targetUrl=${encodeURIComponent(getPriceUrl)}`;
 
-async function fetchPriceFromUrls() {
-  for (const url of PRICE_URLS) {
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_URL; attempt++) {
-      try {
-        logToFile(`Trying ${url} (Attempt ${attempt})`);
-        const res = await axios.get(url);
-        const data = res.data;
+    try {
+      logToFile(`Calling verify service with target: ${getPriceUrl}`);
+      const res = await axios.get(verifyUrl);
+      const data = res.data;
 
-        logToFile(`Response from ${url}: ${JSON.stringify(data)}`);
+      logToFile(`Response from verify service: ${JSON.stringify(data)}`);
 
-        if (!data.hasError) {
-          return data;
-        }
-      } catch (err) {
-        logToFile(`Error calling ${url}: ${err.message}`);
-        break; // Skip to next URL if unreachable
+      if (!data.hasError) {
+        return data;
       }
+    } catch (err) {
+      logToFile(`Error calling verify service for ${getPriceUrl}: ${err.message}`);
     }
   }
 
-  logToFile(`All attempts failed. Returning fallback response.`);
+  logToFile(`All verify attempts failed. Returning fallback.`);
   return { totalPrice: "0.00", hasError: true };
 }
 
 app.get('/check-price', async (req, res) => {
-  const result = await fetchPriceFromUrls();
+  const result = await fetchPriceViaVerifyService();
   res.json(result);
 });
 
